@@ -1,6 +1,7 @@
 $ar_databases = ['activerecord_unittest', 'activerecord_unittest2']
 $as_vagrant   = 'sudo -u vagrant -H bash -l -c'
 $home         = '/home/vagrant'
+$ruby_version = '1.9.3-p194'
 
 Exec {
   path => ['/usr/sbin', '/usr/bin', '/sbin', '/bin']
@@ -21,43 +22,6 @@ class { 'apt_get_update':
   stage => preinstall
 }
 
-# --- SQLite -------------------------------------------------------------------
-
-package { ['sqlite3', 'libsqlite3-dev']:
-  ensure => installed;
-}
-
-# --- MySQL --------------------------------------------------------------------
-
-class install_mysql {
-  class { 'mysql': }
-
-  class { 'mysql::server':
-    config_hash => { 'root_password' => '' }
-  }
-
-  database { $ar_databases:
-    ensure  => present,
-    charset => 'utf8',
-    require => Class['mysql::server']
-  }
-
-  database_user { 'rails@localhost':
-    ensure  => present,
-    require => Class['mysql::server']
-  }
-
-  database_grant { ['rails@localhost/activerecord_unittest', 'rails@localhost/activerecord_unittest2']:
-    privileges => ['all'],
-    require    => Database_user['rails@localhost']
-  }
-
-  package { 'libmysqlclient15-dev':
-    ensure => installed
-  }
-}
-class { 'install_mysql': }
-
 # --- PostgreSQL ---------------------------------------------------------------
 
 class install_postgres {
@@ -71,7 +35,7 @@ class install_postgres {
     require  => Class['postgresql::server']
   }
 
-  pg_user { 'rails':
+  pg_user { 'ecom':
     ensure  => present,
     require => Class['postgresql::server']
   }
@@ -135,7 +99,7 @@ exec { 'install_ruby':
   # The rvm executable is more suitable for automated installs.
   #
   # Thanks to @mpapis for this tip.
-  command => "${as_vagrant} '${home}/.rvm/bin/rvm install 2.0.0 --latest-binary --autolibs=enabled && rvm --fuzzy alias create default 2.0.0'",
+  command => "${as_vagrant} '${home}/.rvm/bin/rvm install ${ruby_version} --latest-binary --autolibs=enabled && rvm --fuzzy alias create default ${ruby_version}'",
   creates => "${home}/.rvm/bin/ruby",
   require => Exec['install_rvm']
 }
@@ -144,3 +108,7 @@ exec { "${as_vagrant} 'gem install bundler --no-rdoc --no-ri'":
   creates => "${home}/.rvm/bin/bundle",
   require => Exec['install_ruby']
 }
+
+# --- Redis ---------------------------------------------------------------------
+
+include redis
