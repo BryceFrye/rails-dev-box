@@ -51,6 +51,8 @@ Port 3000 in the host computer is forwarded to port 3000 in the virtual machine.
 
 * Memcached
 
+* Redis
+
 ## Recommended Workflow
 
 The recommended workflow is
